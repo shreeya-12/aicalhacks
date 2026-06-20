@@ -1,33 +1,27 @@
 """Agent 1: The Live Researcher.
 
-Owned by Member 3. Spins up a Browserbase cloud browser via the Stagehand SDK,
-searches a reference/news source for the topic, and extracts factual text.
+Spins up a Browserbase cloud browser via the Stagehand SDK, navigates to the
+topic's Wikipedia article, and extracts a factual text summary.
 
-STUBBED: returns mock facts so Agent 2/3 and the pipeline can be built and
-tested without live Browserbase credentials. Swap research() for the real
-Stagehand calls once BROWSERBASE_API_KEY / BROWSERBASE_PROJECT_ID are set.
+Falls back to mock facts when BROWSERBASE_API_KEY/BROWSERBASE_PROJECT_ID are
+unset, so the rest of the pipeline keeps working without live credentials —
+this is the expected dev-mode path, not an error condition.
 
-Real implementation sketch (Stagehand Python SDK):
-
-    from stagehand import Stagehand
-
-    async def research(topic: str) -> ResearchFacts:
-        stagehand = Stagehand(
-            api_key=settings.browserbase_api_key,
-            project_id=settings.browserbase_project_id,
-        )
-        await stagehand.init()
-        page = stagehand.page
-        await page.goto(f"https://en.wikipedia.org/wiki/{topic}")
-        facts = await page.extract(
-            "Extract the key factual summary of this topic as plain text, "
-            "along with the page's source URL."
-        )
-        await stagehand.close()
-        return ResearchFacts(topic=topic, source_urls=[page.url], raw_text=facts)
+Stagehand's Python SDK (package `stagehand-py`, module `stagehand`) is fully
+async-native: Stagehand.init/page.goto/page.act/page.extract/close are all
+coroutines, confirmed by inspecting the installed package directly. With no
+explicit schema, page.extract(instruction) defaults to schema
+{"extraction": "<string>"}, so the result is read off `result.extraction`.
 """
 
+import logging
+
+from stagehand import Stagehand, StagehandConfig
+
+from config import settings
 from models import ResearchFacts
+
+logger = logging.getLogger(__name__)
 
 _MOCK_FACTS = (
     "Photosynthesis is the process by which plants, algae, and some bacteria "
@@ -39,10 +33,49 @@ _MOCK_FACTS = (
 )
 
 
-async def research(topic: str) -> ResearchFacts:
-    # TODO(Member 3): replace with real Stagehand browser automation.
+def _mock_research(topic: str) -> ResearchFacts:
     return ResearchFacts(
         topic=topic,
         source_urls=["https://example.com/mock-source"],
         raw_text=_MOCK_FACTS,
     )
+
+
+def _build_wikipedia_url(topic: str) -> str:
+    # Naive slug — doesn't handle disambiguation pages or missing articles,
+    # acceptable for hackathon scope.
+    return f"https://en.wikipedia.org/wiki/{topic.strip().replace(' ', '_')}"
+
+
+async def _extract_from_wikipedia(topic: str) -> tuple[str, str]:
+    url = _build_wikipedia_url(topic)
+    config = StagehandConfig(
+        env="BROWSERBASE",
+        api_key=settings.browserbase_api_key,
+        project_id=settings.browserbase_project_id,
+        model_name="claude-3-7-sonnet-latest",
+    )
+    stagehand = Stagehand(config=config, model_api_key=settings.stagehand_model_api_key)
+    try:
+        await stagehand.init()
+        await stagehand.page.goto(url)
+        result = await stagehand.page.extract(
+            "Extract a factual summary of this topic as plain text, "
+            "3-5 paragraphs, suitable as raw research notes."
+        )
+        return result.extraction, url
+    finally:
+        await stagehand.close()
+
+
+async def research(topic: str) -> ResearchFacts:
+    if not settings.browserbase_api_key or not settings.browserbase_project_id:
+        return _mock_research(topic)
+
+    try:
+        raw_text, url = await _extract_from_wikipedia(topic)
+    except Exception:
+        logger.exception("Stagehand research failed for topic=%r, falling back to mock", topic)
+        return _mock_research(topic)
+
+    return ResearchFacts(topic=topic, source_urls=[url], raw_text=raw_text)

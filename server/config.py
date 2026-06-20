@@ -10,6 +10,10 @@ class Settings:
 
     browserbase_api_key: str = os.environ.get("BROWSERBASE_API_KEY", "")
     browserbase_project_id: str = os.environ.get("BROWSERBASE_PROJECT_ID", "")
+    # Stagehand's own LLM calls (for page.act/page.extract reasoning) use this key,
+    # separate from our ANTHROPIC_API_KEY usage in agents/storyteller.py and quiz_master.py.
+    stagehand_model_api_key: str = os.environ.get("MODEL_API_KEY", os.environ.get("ANTHROPIC_API_KEY", ""))
+    stagehand_api_url: str = os.environ.get("STAGEHAND_API_URL", "")
 
     # No official Midjourney API exists; this is whatever unofficial proxy
     # or alternative image service the team ends up wiring in. See agents/images.py.
@@ -21,9 +25,14 @@ class Settings:
 
     sentry_dsn: str = os.environ.get("SENTRY_DSN", "")
 
-    # BAND platform (https://www.band.ai/) integration point. Left unset until
-    # the team confirms BAND's actual API/SDK surface — see pipeline.py.
+    # BAND platform (https://www.band.ai/) — a multi-agent "rooms" coordination
+    # platform where each agent has its own agent_id/api_key. STUBBED: no Band
+    # account exists yet, so nothing reads these fields except this file. See
+    # pipeline.py's module docstring for the intended integration seam.
+    band_rest_url: str = os.environ.get("BAND_REST_URL", "")
+    band_ws_url: str = os.environ.get("BAND_WS_URL", "")
     band_api_key: str = os.environ.get("BAND_API_KEY", "")
+    band_agent_id: str = os.environ.get("BAND_AGENT_ID", "")
 
     cors_origins: list[str] = os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
 

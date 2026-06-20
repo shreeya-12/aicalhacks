@@ -8,9 +8,10 @@ import { generateStory } from "./api";
 import type { AgeGroup, StoryPayload } from "./types";
 import "./App.css";
 
-// Assumption: until the live pipeline is wired up, "Use demo data" lets the
-// frontend be developed/demoed independently (per Member 2's mock requirement).
+type View = "home" | "lesson" | "quiz";
+
 function App() {
+  const [view, setView] = useState<View>("home");
   const [story, setStory] = useState<StoryPayload | null>(null);
   const [activeChapter, setActiveChapter] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -23,6 +24,7 @@ function App() {
       const payload = await generateStory({ topic, age_group: ageGroup });
       setStory(payload);
       setActiveChapter(0);
+      setView("lesson");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate story");
     } finally {
@@ -34,43 +36,100 @@ function App() {
     setStory(mockPhotosynthesis);
     setActiveChapter(0);
     setError(null);
+    setView("lesson");
   }
 
-  return (
-    <div className="app">
-      <header className="app-header">
-        <h1>StoryStream</h1>
-        <TopicForm onGenerate={handleGenerate} isLoading={isLoading} />
-        <button className="demo-button" onClick={loadDemo}>
-          Use demo data (Photosynthesis)
-        </button>
-      </header>
+  function goHome() {
+    setView("home");
+    setStory(null);
+    setActiveChapter(0);
+    setError(null);
+  }
 
-      {error && <p className="error">{error}</p>}
+  if (view === "home") {
+    return (
+      <div className="home-view">
+        <div className="home-content">
+          <div className="home-brand">
+            <div className="home-logo">✦</div>
+            <h1 className="home-title">StoryStream</h1>
+            <p className="home-tagline">
+              Turn any topic into an illustrated story and quiz — powered by AI.
+            </p>
+          </div>
 
-      {story && (
-        <main className="dashboard">
-          <section className="dashboard-left">
+          <div className="home-card">
+            <TopicForm onGenerate={handleGenerate} isLoading={isLoading} />
+            {error && <p className="error-msg">{error}</p>}
+            <div className="home-divider">
+              <span>or</span>
+            </div>
+            <button className="demo-btn" onClick={loadDemo}>
+              Use Demo: Photosynthesis
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === "lesson" && story) {
+    return (
+      <div className="lesson-view">
+        <header className="lesson-header">
+          <div className="lesson-header-left">
+            <span className="lesson-brand">✦ StoryStream</span>
+            <span className="lesson-topic">{story.topic}</span>
+          </div>
+          <button className="header-btn" onClick={goHome}>
+            ← New Lesson
+          </button>
+        </header>
+
+        <main className="lesson-main">
+          <section className="lesson-story">
             <StoryPanel
               chapters={story.chapters}
               activeIndex={activeChapter}
               onSelectChapter={setActiveChapter}
+              onComplete={() => setView("quiz")}
             />
           </section>
-          <section className="dashboard-right">
+          <section className="lesson-image">
             <ImageFrame chapter={story.chapters[activeChapter]} />
           </section>
         </main>
-      )}
+      </div>
+    );
+  }
 
-      {story && (
-        <footer className="quiz-section">
-          <h2>Quiz Time</h2>
-          <Quiz questions={story.quiz} />
-        </footer>
-      )}
-    </div>
-  );
+  if (view === "quiz" && story) {
+    return (
+      <div className="quiz-view">
+        <header className="lesson-header">
+          <div className="lesson-header-left">
+            <span className="lesson-brand">✦ StoryStream</span>
+            <span className="lesson-topic">{story.topic}</span>
+          </div>
+          <button className="header-btn" onClick={() => setView("lesson")}>
+            ← Back to Story
+          </button>
+        </header>
+
+        <main className="quiz-main">
+          <div className="quiz-header">
+            <h2 className="quiz-title">Quiz Time</h2>
+            <p className="quiz-subtitle">
+              Let's see how much you remember from the story.
+            </p>
+          </div>
+          <Quiz questions={story.quiz} onRestart={goHome} />
+        </main>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 export default App;

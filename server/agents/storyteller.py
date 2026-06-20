@@ -7,14 +7,19 @@ Uses the Anthropic Claude API directly (model and message-claude calls are
 not BAND-specific, so they don't need to wait on BAND's integration details).
 """
 
-import json
-
 from anthropic import AsyncAnthropic
 
+from agents._tool_schemas import input_schema_for
 from config import settings
-from models import AgeGroup, Chapter, ResearchFacts, StoryDraft
+from models import AgeGroup, ChapterDraft, ResearchFacts, StoryDraft
 
 _client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+
+_CHAPTERS_TOOL = {
+    "name": "submit_chapters",
+    "description": "Submit the final set of exactly 3 story chapters.",
+    "input_schema": input_schema_for(ChapterDraft, "chapters", 3),
+}
 
 _AGE_GROUP_STYLE = {
     AgeGroup.ELEMENTARY: "a curious 8-year-old. Use simple words, short sentences, and fun analogies.",
@@ -32,17 +37,7 @@ _SYSTEM_PROMPT = """You are an expert educational storyteller. You convert raw r
 text into exactly 3 short chapters tailored to a specific age group, and write one \
 descriptive Midjourney image prompt per chapter in the visual style requested.
 
-You must respond with ONLY a JSON object matching this exact shape, no markdown \
-fences, no commentary:
-
-{
-  "chapters": [
-    {"title": "...", "text": "...", "image_prompt": "..."},
-    {"title": "...", "text": "...", "image_prompt": "..."},
-    {"title": "...", "text": "...", "image_prompt": "..."}
-  ]
-}
-"""
+Call the submit_chapters tool exactly once with your final result."""
 
 
 def _build_user_prompt(facts: ResearchFacts, age_group: AgeGroup) -> str:
@@ -61,11 +56,12 @@ async def write_story(facts: ResearchFacts, age_group: AgeGroup) -> StoryDraft:
         model="claude-sonnet-4-6",
         max_tokens=2000,
         system=_SYSTEM_PROMPT,
+        tools=[_CHAPTERS_TOOL],
+        tool_choice={"type": "tool", "name": "submit_chapters"},
         messages=[{"role": "user", "content": _build_user_prompt(facts, age_group)}],
     )
 
-    raw_text = response.content[0].text
-    data = json.loads(raw_text)
-    chapters = [Chapter(**chapter) for chapter in data["chapters"]]
+    tool_use_block = next(b for b in response.content if b.type == "tool_use")
+    chapters = [ChapterDraft(**chapter) for chapter in tool_use_block.input["chapters"]]
 
     return StoryDraft(topic=facts.topic, age_group=age_group, chapters=chapters)

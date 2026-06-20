@@ -5,14 +5,19 @@ and writes a 3-question multiple-choice quiz strictly grounded in that text,
 to keep the quiz consistent with what the user actually read.
 """
 
-import json
-
 from anthropic import AsyncAnthropic
 
+from agents._tool_schemas import input_schema_for
 from config import settings
 from models import QuizPayload, QuizQuestion, StoryDraft
 
 _client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+
+_QUIZ_TOOL = {
+    "name": "submit_quiz",
+    "description": "Submit the final quiz of exactly 3 multiple-choice questions.",
+    "input_schema": input_schema_for(QuizQuestion, "quiz", 3),
+}
 
 _SYSTEM_PROMPT = """You are a quiz writer. Given story chapters, write exactly 3 \
 multiple-choice questions that test comprehension of facts stated in those \
@@ -20,17 +25,7 @@ chapters. Do not introduce facts that aren't in the text.
 
 Each question must have exactly 4 choices and one correct_index (0-3).
 
-Respond with ONLY a JSON object matching this exact shape, no markdown fences, \
-no commentary:
-
-{
-  "quiz": [
-    {"question": "...", "choices": ["...", "...", "...", "..."], "correct_index": 0},
-    {"question": "...", "choices": ["...", "...", "...", "..."], "correct_index": 0},
-    {"question": "...", "choices": ["...", "...", "...", "..."], "correct_index": 0}
-  ]
-}
-"""
+Call the submit_quiz tool exactly once with your final result."""
 
 
 def _build_user_prompt(draft: StoryDraft) -> str:
@@ -43,10 +38,11 @@ async def write_quiz(draft: StoryDraft) -> list[QuizQuestion]:
         model="claude-sonnet-4-6",
         max_tokens=1000,
         system=_SYSTEM_PROMPT,
+        tools=[_QUIZ_TOOL],
+        tool_choice={"type": "tool", "name": "submit_quiz"},
         messages=[{"role": "user", "content": _build_user_prompt(draft)}],
     )
 
-    raw_text = response.content[0].text
-    data = json.loads(raw_text)
-    payload = QuizPayload(**data)
+    tool_use_block = next(b for b in response.content if b.type == "tool_use")
+    payload = QuizPayload(**tool_use_block.input)
     return payload.quiz

@@ -22,6 +22,16 @@ class ResearchFacts(BaseModel):
     raw_text: str
 
 
+class ChapterDraft(BaseModel):
+    """A chapter as Agent 2 produces it — no image_url yet, since that field
+    is filled in later by the image step and shouldn't be something Agent 2
+    could hallucinate a value for."""
+
+    title: str
+    text: str
+    image_prompt: str
+
+
 class Chapter(BaseModel):
     title: str
     text: str
@@ -34,7 +44,7 @@ class StoryDraft(BaseModel):
 
     topic: str
     age_group: AgeGroup
-    chapters: list[Chapter]
+    chapters: list[ChapterDraft]
 
 
 class QuizQuestion(BaseModel):

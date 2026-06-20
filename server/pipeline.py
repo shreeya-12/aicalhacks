@@ -1,11 +1,29 @@
 """Sequential orchestration: Agent 1 -> Agent 2 -> Agent 3 -> images -> cache.
 
+State flowing through the pipeline is just the Pydantic models in models.py —
+each agent's output is the next agent's input, with no separate state-machine
+object needed:
+
+    topic (str)
+        -> research()      -> ResearchFacts   (Agent 1: raw scraped text)
+        -> write_story()    -> StoryDraft      (Agent 2: list[ChapterDraft], no image_url yet)
+        -> write_quiz()     -> list[QuizQuestion]  (Agent 3: grounded only in StoryDraft text)
+        -> generate_image() -> attaches image_url, producing the final Chapter
+        -> StoryPayload     (cached in Redis, returned to the frontend)
+
 Written as plain async functions rather than against a specific framework.
-The "BAND platform" (https://www.band.ai/) mentioned in the build plan is
-expected to slot in here once its actual API/SDK is confirmed — e.g. if BAND
-turns out to provide its own agent-execution/orchestration calls, swap the
-direct agent calls below for BAND equivalents without changing the contract
-of run_pipeline().
+
+BAND (https://www.band.ai/) is a multi-agent *rooms* coordination platform —
+each agent gets its own agent_id/api_key and agents communicate over a shared
+room via BAND_REST_URL/BAND_WS_URL, rather than a simple function-call
+pipeline. That's a heavier model than what we have here, and we don't have
+Band credentials yet, so this file makes no Band calls. Config fields
+(band_rest_url, band_ws_url, band_api_key, band_agent_id) exist in config.py
+for when real credentials arrive. If/when that happens, the natural
+integration point is to replace the direct `await research(...)` /
+`await write_story(...)` / `await write_quiz(...)` calls below with
+equivalent calls routed through a Band room, without changing
+run_pipeline()'s signature or its StoryPayload return contract.
 """
 
 import asyncio

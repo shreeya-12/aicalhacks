@@ -1,4 +1,4 @@
-import type { GenerateRequest, StoryPayload } from "./types";
+import type { GenerateRequest, HistoryItem, StoryPayload } from "./types";
 
 // Assumption: backend runs on :8000 in dev; override with VITE_API_BASE_URL for deployed builds.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
@@ -15,4 +15,14 @@ export async function generateStory(req: GenerateRequest): Promise<StoryPayload>
   }
 
   return res.json();
+}
+
+export async function fetchHistory(): Promise<HistoryItem[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/history`);
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
 }

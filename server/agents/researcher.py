@@ -40,7 +40,7 @@ from models import ResearchFacts
 
 logger = logging.getLogger(__name__)
 
-_PAGE_TIMEOUT_SECONDS = 20
+_PAGE_TIMEOUT_SECONDS = 60
 _MAX_ARTICLES = 2
 _MAX_YOUTUBE = 2
 
@@ -119,7 +119,7 @@ async def _crawl(topic: str) -> ResearchFacts:
         env="BROWSERBASE",
         api_key=settings.browserbase_api_key,
         project_id=settings.browserbase_project_id,
-        model_name="claude-3-7-sonnet-latest",
+        model_name="anthropic/claude-sonnet-4-6",
     )
     stagehand = Stagehand(config=config, model_api_key=settings.stagehand_model_api_key)
     chunks: list[str] = []

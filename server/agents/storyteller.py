@@ -39,6 +39,12 @@ paragraph should cover one clear idea so the text is easy to read and scan — d
 return a single dense block of text. Aim for substance: explain the concept, give a \
 concrete example or analogy, and connect it to why it matters.
 
+Wrap the 3-6 most important terms or phrases in **double asterisks** the first time \
+they appear in the text. For each one you bolded, add an entry to key_terms with the \
+exact term (matching the bolded text) and a one-sentence, age-appropriate definition. \
+The definition is shown when the reader hovers the highlighted term, so keep it short \
+and self-contained.
+
 Call the submit_chapter tool exactly once with your final result."""
 
 

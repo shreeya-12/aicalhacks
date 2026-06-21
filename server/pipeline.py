@@ -48,7 +48,12 @@ async def _write_chapter_and_quiz(
     chapter_index: int, title: str, facts: ResearchFacts, age_group: AgeGroup
 ) -> tuple[ChapterDraft, list[QuizQuestion]]:
     content = await write_chapter(title, facts, age_group)
-    draft = ChapterDraft(title=title, text=content.text, image_prompt=content.image_prompt)
+    draft = ChapterDraft(
+        title=title,
+        text=content.text,
+        image_prompt=content.image_prompt,
+        key_terms=content.key_terms,
+    )
     quiz_contents = await write_quiz_for_chapter(draft)
     quiz = [
         QuizQuestion(**question.model_dump(), chapter_index=chapter_index) for question in quiz_contents
@@ -76,7 +81,13 @@ async def run_pipeline(topic: str, age_group: AgeGroup) -> StoryPayload:
 
     image_urls = await asyncio.gather(*(generate_image(c.image_prompt) for c in chapter_drafts))
     chapters = [
-        Chapter(title=c.title, text=c.text, image_prompt=c.image_prompt, image_url=url)
+        Chapter(
+            title=c.title,
+            text=c.text,
+            image_prompt=c.image_prompt,
+            image_url=url,
+            key_terms=c.key_terms,
+        )
         for c, url in zip(chapter_drafts, image_urls)
     ]
 

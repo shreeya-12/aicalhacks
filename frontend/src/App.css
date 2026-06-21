@@ -580,6 +580,56 @@
   color: #374151;
 }
 
+/* Hoverable key term: show its definition in a tooltip */
+.chapter-text strong.term {
+  position: relative;
+  cursor: help;
+  border-bottom: 1.5px dotted #a855f7;
+}
+
+.chapter-text strong.term .term-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  width: max-content;
+  max-width: 260px;
+  background: #1f2937;
+  color: #f9fafb;
+  font-size: 13px;
+  font-weight: 500;
+  font-style: normal;
+  line-height: 1.45;
+  text-align: left;
+  padding: 8px 11px;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 20;
+  pointer-events: none;
+}
+
+/* little arrow */
+.chapter-text strong.term .term-tip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1f2937;
+}
+
+.chapter-text strong.term:hover .term-tip,
+.chapter-text strong.term:focus .term-tip,
+.chapter-text strong.term:focus-visible .term-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
 .chapter-nav {
   display: flex;
   align-items: center;

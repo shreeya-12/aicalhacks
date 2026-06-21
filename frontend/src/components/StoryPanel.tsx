@@ -1,19 +1,40 @@
-import type { Chapter } from "../types";
+import type { Chapter, KeyTerm } from "../types";
 
 const CHAPTER_COLORS = ["#3b82f6", "#22c55e", "#f59e0b", "#a855f7"];
 
 // Render inline markdown emphasis (**bold** and *italic*) that Claude emits,
 // so it shows as highlighted/emphasized text instead of literal asterisks.
-function renderInline(text: string) {
+// Bolded terms that have a matching definition get a hover tooltip.
+function renderInline(text: string, defs: Map<string, string> = new Map()) {
   return text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
+      const term = part.slice(2, -2);
+      const def = defs.get(term.trim().toLowerCase());
+      if (def) {
+        return (
+          <strong key={i} className="term" tabIndex={0}>
+            {term}
+            <span className="term-tip" role="tooltip">
+              {def}
+            </span>
+          </strong>
+        );
+      }
+      return <strong key={i}>{term}</strong>;
     }
     if (part.startsWith("*") && part.endsWith("*")) {
       return <em key={i}>{part.slice(1, -1)}</em>;
     }
     return part;
   });
+}
+
+function buildDefs(keyTerms?: KeyTerm[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const kt of keyTerms ?? []) {
+    map.set(kt.term.trim().toLowerCase(), kt.definition);
+  }
+  return map;
 }
 
 interface StoryPanelProps {
@@ -32,6 +53,7 @@ export function StoryPanel({
   const active = chapters[activeIndex];
   const isFirst = activeIndex === 0;
   const isLast = activeIndex === chapters.length - 1;
+  const defs = buildDefs(active.key_terms);
 
   function goNext() {
     if (isLast) {
@@ -78,7 +100,7 @@ export function StoryPanel({
           .filter(Boolean)
           .map((para, i) => (
             <p className="chapter-text" key={i}>
-              {renderInline(para)}
+              {renderInline(para, defs)}
             </p>
           ))}
       </div>

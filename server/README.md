@@ -1,4 +1,4 @@
-# StoryLearn Ai backend
+# StoryLearn AI backend
 
 FastAPI service that turns a topic + age group into an illustrated story (chapter count scales
 with age group) with 2 quiz questions per chapter, via a per-chapter agent pipeline, and caches

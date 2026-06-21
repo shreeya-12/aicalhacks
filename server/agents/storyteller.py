@@ -10,12 +10,17 @@ Uses the Anthropic Claude API directly (model and message-claude calls are
 not BAND-specific, so they don't need to wait on BAND's integration details).
 """
 
+import logging
+
 from anthropic import AsyncAnthropic
+from pydantic import ValidationError
 
 from agents._age_group_style import AUDIENCE_STYLE, IMAGE_PROMPT_STYLE
 from agents._tool_schemas import single_input_schema_for
 from config import settings
 from models import AgeGroup, ChapterContent, ResearchFacts
+
+logger = logging.getLogger(__name__)
 
 _client = AsyncAnthropic(api_key=settings.anthropic_api_key)
 
@@ -26,8 +31,13 @@ _CHAPTER_TOOL = {
 }
 
 _SYSTEM_PROMPT = """You are an expert educational storyteller. You convert raw research \
-text into one short chapter tailored to a specific age group, plus one descriptive \
+text into one engaging chapter tailored to a specific age group, plus one descriptive \
 Midjourney image prompt in the visual style requested.
+
+Write the chapter as 3-4 distinct paragraphs separated by a blank line (\\n\\n). Each \
+paragraph should cover one clear idea so the text is easy to read and scan — do not \
+return a single dense block of text. Aim for substance: explain the concept, give a \
+concrete example or analogy, and connect it to why it matters.
 
 Call the submit_chapter tool exactly once with your final result."""
 
@@ -45,12 +55,26 @@ def _build_user_prompt(chapter_title: str, facts: ResearchFacts, age_group: AgeG
 async def write_chapter(chapter_title: str, facts: ResearchFacts, age_group: AgeGroup) -> ChapterContent:
     response = await _client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=1200,
+        max_tokens=3000,
         system=_SYSTEM_PROMPT,
         tools=[_CHAPTER_TOOL],
         tool_choice={"type": "tool", "name": "submit_chapter"},
         messages=[{"role": "user", "content": _build_user_prompt(chapter_title, facts, age_group)}],
     )
 
-    tool_use_block = next(b for b in response.content if b.type == "tool_use")
-    return ChapterContent(**tool_use_block.input)
+    tool_use_block = next((b for b in response.content if b.type == "tool_use"), None)
+    try:
+        return ChapterContent(**(tool_use_block.input if tool_use_block else {}))
+    except ValidationError:
+        # A truncated/incomplete tool call (e.g. stop_reason == "max_tokens")
+        # can yield empty or partial input. Don't let one chapter crash the
+        # whole lesson — fall back to whatever text we can salvage.
+        logger.warning(
+            "write_chapter got incomplete tool input for %r (stop_reason=%s); using fallback",
+            chapter_title, response.stop_reason,
+        )
+        partial = tool_use_block.input if tool_use_block else {}
+        return ChapterContent(
+            text=partial.get("text") or "This chapter could not be fully generated. Please try again.",
+            image_prompt=partial.get("image_prompt") or f"educational illustration about {chapter_title}",
+        )

@@ -58,7 +58,15 @@ export function StoryPanel({
         >
           {active.title}
         </h2>
-        <p className="chapter-text">{active.text}</p>
+        {active.text
+          .split(/\n\s*\n/)
+          .map((para) => para.trim())
+          .filter(Boolean)
+          .map((para, i) => (
+            <p className="chapter-text" key={i}>
+              {para}
+            </p>
+          ))}
       </div>
 
       <div className="chapter-nav">

@@ -21,8 +21,8 @@ IMAGE_PROMPT_STYLE = {
 # older audiences get more chapters since the topic can go deeper. Claude
 # picks within the range based on how much depth the topic actually warrants.
 CHAPTER_COUNT_RANGE = {
-    AgeGroup.ELEMENTARY: (3, 3),
-    AgeGroup.MIDDLE_SCHOOL: (4, 5),
-    AgeGroup.HIGH_SCHOOL: (6, 8),
-    AgeGroup.COLLEGE: (8, 10),
+    AgeGroup.ELEMENTARY: (3, 5),
+    AgeGroup.MIDDLE_SCHOOL: (4, 6),
+    AgeGroup.HIGH_SCHOOL: (6, 9),
+    AgeGroup.COLLEGE: (8, 12),
 }

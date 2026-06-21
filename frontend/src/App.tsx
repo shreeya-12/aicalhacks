@@ -4,6 +4,7 @@ import { StoryPanel } from "./components/StoryPanel";
 import { ImageFrame } from "./components/ImageFrame";
 import { Quiz } from "./components/Quiz";
 import { Sidebar } from "./components/Sidebar";
+import { GenerationProgress } from "./components/GenerationProgress";
 import { mockPhotosynthesis } from "./data/mockPhotosynthesis";
 import { generateStory, fetchHistory } from "./api";
 import type { AgeGroup, HistoryItem, StoryPayload } from "./types";
@@ -72,6 +73,7 @@ function App() {
 
               <div className="home-card">
                 <TopicForm onGenerate={handleGenerate} isLoading={isLoading} />
+                {isLoading && <GenerationProgress />}
                 {error && <p className="error-msg">{error}</p>}
                 <div className="home-divider">
                   <span>or</span>

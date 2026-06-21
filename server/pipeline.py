@@ -2,19 +2,27 @@
 chapter + its quiz -> images -> cache.
 
     topic, age_group
-        -> plan_chapters()        -> list[ChapterOutline]   (title + research_query, x3)
+        -> plan_chapters()        -> list[ChapterOutline]   (title + research_query; count varies by age group, see agents/_age_group_style.CHAPTER_COUNT_RANGE)
         -> research(outline.research_query)   -> ResearchFacts   (Agent 1, mega-crawler, once per chapter)
         -> write_chapter(...)     -> ChapterContent          (Agent 2, scoped to that chapter's research)
-        -> write_quiz_for_chapter(...) -> list[QuizQuestionContent]  (Agent 3, 2 questions + explanations, grounded only in that chapter's text)
+        -> write_quiz_for_chapter(...) -> list[QuizQuestionContent]  (Agent 3, 2 questions + explanations per chapter, grounded only in that chapter's text)
         -> (chapter_index assigned here, not by Agent 3, producing the final QuizQuestion)
         -> generate_image()       -> attaches image_url, producing the final Chapter
-        -> StoryPayload           (chapters x3, quiz x6 — cached in Redis, returned to the frontend)
+        -> StoryPayload           (N chapters, 2N quiz questions — cached in Redis, returned to the frontend)
 
-The 3 chapters' research runs sequentially (a single Browserbase plan may
+Chapter count scales with age group: elementary is fixed at 3, but
+middle_school/high_school/college get progressively wider ranges (Claude
+picks within the range based on topic depth) — so the number of chapters,
+and proportionally the number of sequential research crawls and total quiz
+questions, is no longer always 3.
+
+Each chapter's research runs sequentially (a single Browserbase plan may
 only allow one concurrent browser session), but once all research is done,
-the 3 chapters' write_chapter + write_quiz_for_chapter calls run concurrently
+all chapters' write_chapter + write_quiz_for_chapter calls run concurrently
 via asyncio.gather — Claude calls have no shared-session concurrency limit,
-so this is free latency savings.
+so this is free latency savings. Note: for the larger chapter counts
+(high_school/college), this means up to ~10 sequential Stagehand crawls,
+which can take several minutes total — accepted for now, not yet optimized.
 
 BAND (https://www.band.ai/) is a multi-agent *rooms* coordination platform —
 each agent gets its own agent_id/api_key and agents communicate over a shared

@@ -5,15 +5,20 @@ makes malformed output structurally impossible — there's no free-text wrapper
 (markdown fences, "Here's the result:" preambles) left for Claude to add.
 """
 
+from __future__ import annotations
+
 from pydantic import BaseModel
 
 
-def input_schema_for(model: type[BaseModel], wrapper_key: str, count: int) -> dict:
-    """Builds a tool input_schema of shape {wrapper_key: [<count> x model]}.
+def input_schema_for(model: type[BaseModel], wrapper_key: str, min_count: int, max_count: int | None = None) -> dict:
+    """Builds a tool input_schema of shape {wrapper_key: [model, ...]}.
 
-    count is enforced via minItems/maxItems on the wrapper array — this can't
-    be derived from the item model alone, so it's added explicitly here.
+    Item count is enforced via minItems/maxItems on the wrapper array — this
+    can't be derived from the item model alone, so it's added explicitly
+    here. Pass only min_count for an exact count, or both for a range.
     """
+    if max_count is None:
+        max_count = min_count
     item_schema = model.model_json_schema()
     item_schema.pop("title", None)
     return {
@@ -22,8 +27,8 @@ def input_schema_for(model: type[BaseModel], wrapper_key: str, count: int) -> di
             wrapper_key: {
                 "type": "array",
                 "items": item_schema,
-                "minItems": count,
-                "maxItems": count,
+                "minItems": min_count,
+                "maxItems": max_count,
             }
         },
         "required": [wrapper_key],

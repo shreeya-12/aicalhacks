@@ -559,7 +559,7 @@
 .chapter-text {
   font-size: 16.5px;
   line-height: 1.85;
-  color: #1f2937;
+  color: var(--text-h);
   margin: 0 0 18px;
 }
 
@@ -577,7 +577,18 @@
 
 .chapter-text em {
   font-style: italic;
-  color: #374151;
+  color: var(--text);
+}
+
+/* Dark mode: lighten the purple accents so highlighted terms stay readable */
+@media (prefers-color-scheme: dark) {
+  .chapter-text strong {
+    color: #c4b5fd;
+    background: linear-gradient(transparent 62%, rgba(168, 85, 247, 0.32) 62%);
+  }
+  .chapter-text strong.term {
+    border-bottom-color: #c4b5fd;
+  }
 }
 
 /* Hoverable key term: show its definition in a tooltip */

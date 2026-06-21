@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 init_sentry()
 
-app = FastAPI(title="StoryLearn Ai API")
+app = FastAPI(title="StoryLearn AI API")
 
 app.add_middleware(
     CORSMiddleware,

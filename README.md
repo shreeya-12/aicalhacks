@@ -1,6 +1,6 @@
 # AI Hackathon @ UC Berkeley 2026
 
-## StoryLearn Ai
+## StoryLearn AI
 
 Turns any topic into an age-appropriate illustrated story (3 chapters for elementary, scaling up
 to 8-10 for college) with 2 quiz questions per chapter, via a per-chapter agent pipeline: a

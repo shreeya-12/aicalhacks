@@ -1,4 +1,4 @@
-# StoryStream frontend
+# StoryLearn Ai frontend
 
 A 3-view app: pick a topic (`home`) -> read the generated chapters (`lesson`) -> take the quiz
 (`quiz`), plus a collapsible history sidebar.

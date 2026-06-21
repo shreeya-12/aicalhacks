@@ -65,7 +65,7 @@ function App() {
             <div className="home-content">
               <div className="home-brand">
                 <div className="home-logo">✦</div>
-                <h1 className="home-title">StoryStream</h1>
+                <h1 className="home-title">StoryLearn Ai</h1>
                 <p className="home-tagline">
                   Turn any topic into an illustrated story and quiz — powered by AI.
                 </p>
@@ -90,7 +90,7 @@ function App() {
           <div className="lesson-view">
             <header className="lesson-header">
               <div className="lesson-header-left">
-                <span className="lesson-brand">✦ StoryStream</span>
+                <span className="lesson-brand">✦ StoryLearn Ai</span>
                 <span className="lesson-topic">{story.topic}</span>
               </div>
               <button className="header-btn" onClick={goHome}>
@@ -118,7 +118,7 @@ function App() {
           <div className="quiz-view">
             <header className="lesson-header">
               <div className="lesson-header-left">
-                <span className="lesson-brand">✦ StoryStream</span>
+                <span className="lesson-brand">✦ StoryLearn Ai</span>
                 <span className="lesson-topic">{story.topic}</span>
               </div>
               <button className="header-btn" onClick={() => setView("lesson")}>

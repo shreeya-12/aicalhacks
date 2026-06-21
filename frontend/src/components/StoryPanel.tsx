@@ -1,18 +1,25 @@
+import katex from "katex";
 import type { Chapter, KeyTerm } from "../types";
 
 const CHAPTER_COLORS = ["#3b82f6", "#22c55e", "#f59e0b", "#a855f7"];
 
-// Render inline markdown emphasis (**bold** and *italic*) that Claude emits,
-// so it shows as highlighted/emphasized text instead of literal asterisks.
-// Bolded terms that have a matching definition get a hover tooltip.
-function renderInline(text: string, defs: Map<string, string> = new Map()) {
+function renderMath(tex: string, display: boolean, key: number) {
+  const html = katex.renderToString(tex, { throwOnError: false, displayMode: display });
+  return <span key={key} dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
+// Render markdown emphasis (**bold** / *italic*) Claude emits, so it shows as
+// highlighted/emphasized text instead of literal asterisks. Bolded terms with
+// a matching definition get a hover tooltip.
+function renderEmphasis(text: string, defs: Map<string, string>, offset: number) {
   return text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).map((part, i) => {
+    const key = offset + i;
     if (part.startsWith("**") && part.endsWith("**")) {
       const term = part.slice(2, -2);
       const def = defs.get(term.trim().toLowerCase());
       if (def) {
         return (
-          <strong key={i} className="term" tabIndex={0}>
+          <strong key={key} className="term" tabIndex={0}>
             {term}
             <span className="term-tip" role="tooltip">
               {def}
@@ -20,12 +27,26 @@ function renderInline(text: string, defs: Map<string, string> = new Map()) {
           </strong>
         );
       }
-      return <strong key={i}>{term}</strong>;
+      return <strong key={key}>{term}</strong>;
     }
     if (part.startsWith("*") && part.endsWith("*")) {
-      return <em key={i}>{part.slice(1, -1)}</em>;
+      return <em key={key}>{part.slice(1, -1)}</em>;
     }
     return part;
+  });
+}
+
+// Split out LaTeX math ($$display$$ / $inline$) and render it with KaTeX;
+// run emphasis/tooltip rendering on the remaining text.
+function renderInline(text: string, defs: Map<string, string> = new Map()) {
+  return text.split(/(\$\$[^$]+\$\$|\$[^$]+\$)/g).flatMap((part, i) => {
+    if (part.startsWith("$$") && part.endsWith("$$")) {
+      return [renderMath(part.slice(2, -2), true, i * 1000)];
+    }
+    if (part.startsWith("$") && part.endsWith("$") && part.length > 2) {
+      return [renderMath(part.slice(1, -1), false, i * 1000)];
+    }
+    return renderEmphasis(part, defs, i * 1000);
   });
 }
 

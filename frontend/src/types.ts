@@ -26,3 +26,8 @@ export interface GenerateRequest {
   topic: string;
   age_group: AgeGroup;
 }
+
+export interface HistoryItem {
+  topic: string;
+  age_group: AgeGroup;
+}

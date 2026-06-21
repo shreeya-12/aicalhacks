@@ -701,7 +701,34 @@
 .quiz-questions {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 40px;
+}
+
+.quiz-chapter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.quiz-chapter-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  color: var(--text);
+  opacity: 0.55;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.quiz-chapter-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .quiz-question {

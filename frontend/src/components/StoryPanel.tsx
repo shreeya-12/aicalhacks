@@ -2,6 +2,20 @@ import type { Chapter } from "../types";
 
 const CHAPTER_COLORS = ["#3b82f6", "#22c55e", "#f59e0b", "#a855f7"];
 
+// Render inline markdown emphasis (**bold** and *italic*) that Claude emits,
+// so it shows as highlighted/emphasized text instead of literal asterisks.
+function renderInline(text: string) {
+  return text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("*") && part.endsWith("*")) {
+      return <em key={i}>{part.slice(1, -1)}</em>;
+    }
+    return part;
+  });
+}
+
 interface StoryPanelProps {
   chapters: Chapter[];
   activeIndex: number;
@@ -64,7 +78,7 @@ export function StoryPanel({
           .filter(Boolean)
           .map((para, i) => (
             <p className="chapter-text" key={i}>
-              {para}
+              {renderInline(para)}
             </p>
           ))}
       </div>

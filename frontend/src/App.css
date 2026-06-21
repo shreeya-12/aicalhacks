@@ -557,10 +557,27 @@
 }
 
 .chapter-text {
-  font-size: 16px;
-  line-height: 1.8;
-  color: var(--text);
-  margin: 0;
+  font-size: 16.5px;
+  line-height: 1.85;
+  color: #1f2937;
+  margin: 0 0 18px;
+}
+
+.chapter-text:last-child {
+  margin-bottom: 0;
+}
+
+/* Key terms (**bold** in the source) — highlighted for scannability */
+.chapter-text strong {
+  font-weight: 700;
+  color: #6d28d9;
+  background: linear-gradient(transparent 62%, rgba(168, 85, 247, 0.22) 62%);
+  padding: 0 1px;
+}
+
+.chapter-text em {
+  font-style: italic;
+  color: #374151;
 }
 
 .chapter-nav {
@@ -621,7 +638,9 @@
 .image-wrapper {
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 2;
+  /* Square placeholder box while loading; drops to the image's real ratio
+     once loaded (see .image-wrapper.loaded) so nothing gets cropped. */
+  aspect-ratio: 1 / 1;
   border-radius: 16px;
   overflow: hidden;
   background: var(--code-bg);
@@ -658,6 +677,23 @@
   transition: opacity 0.45s ease;
 }
 
+/* Once loaded, let the wrapper take the image's natural aspect ratio
+   instead of a fixed square — the image is shown in full, never cropped. */
+.image-wrapper.loaded {
+  aspect-ratio: auto;
+  /* Inset the image so the rounded corners never clip content sitting at
+     the image's edges (e.g. corner labels/banners). */
+  padding: 8px;
+  background: #fff;
+}
+
+.image-wrapper.loaded img {
+  position: static;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
 .image-caption {
   margin-top: 12px;
   font-size: 12px;
@@ -666,6 +702,11 @@
   text-align: center;
   line-height: 1.45;
   font-style: italic;
+  /* Keep the caption short — clamp the long generation prompt to 2 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* ── Quiz View ─────────────────────────────────────────────────────────────── */

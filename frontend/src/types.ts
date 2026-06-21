@@ -1,10 +1,16 @@
 export type AgeGroup = "elementary" | "middle_school" | "high_school" | "college";
 
+export interface KeyTerm {
+  term: string;
+  definition: string;
+}
+
 export interface Chapter {
   title: string;
   text: string;
   image_prompt: string;
   image_url: string;
+  key_terms?: KeyTerm[];
 }
 
 export interface QuizQuestion {

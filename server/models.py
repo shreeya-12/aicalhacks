@@ -32,12 +32,21 @@ class ResearchFacts(BaseModel):
     raw_text: str
 
 
+class KeyTerm(BaseModel):
+    """A key term highlighted in the chapter, with a short definition shown
+    on hover in the frontend."""
+
+    term: str
+    definition: str
+
+
 class ChapterContent(BaseModel):
     """What Agent 2 (Storyteller) actually produces per chapter — title is
     not re-generated, it's carried over verbatim from the ChapterOutline."""
 
     text: str
     image_prompt: str
+    key_terms: list[KeyTerm] = Field(default_factory=list)
 
 
 class ChapterDraft(BaseModel):
@@ -47,6 +56,7 @@ class ChapterDraft(BaseModel):
     title: str
     text: str
     image_prompt: str
+    key_terms: list[KeyTerm] = Field(default_factory=list)
 
 
 class Chapter(BaseModel):
@@ -54,6 +64,7 @@ class Chapter(BaseModel):
     text: str
     image_prompt: str
     image_url: str = ""  # populated by the image generation step, empty until then
+    key_terms: list[KeyTerm] = Field(default_factory=list)
 
 
 class QuizQuestionContent(BaseModel):

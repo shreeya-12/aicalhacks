@@ -14,7 +14,7 @@ export function ImageFrame({ chapter }: ImageFrameProps) {
 
   return (
     <div className="image-frame">
-      <div className="image-wrapper">
+      <div className={`image-wrapper${loaded ? " loaded" : ""}`}>
         {!loaded && <div className="image-skeleton" />}
         <img
           src={chapter.image_url}

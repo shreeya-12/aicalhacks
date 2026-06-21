@@ -14,12 +14,38 @@ class GenerateRequest(BaseModel):
     age_group: AgeGroup
 
 
+class ChapterOutline(BaseModel):
+    """One chapter's plan, produced before any research happens. title is
+    for display; research_query is a separate plain search-friendly phrase
+    (stylized titles like "The Hungry Leaf" make poor search queries)."""
+
+    title: str
+    research_query: str
+
+
 class ResearchFacts(BaseModel):
-    """Output of Agent 1 (Researcher). Plain extracted text, no formatting yet."""
+    """Output of Agent 1 (Researcher), scoped to a single chapter's research_query."""
 
     topic: str
     source_urls: list[str]
     raw_text: str
+
+
+class ChapterContent(BaseModel):
+    """What Agent 2 (Storyteller) actually produces per chapter — title is
+    not re-generated, it's carried over verbatim from the ChapterOutline."""
+
+    text: str
+    image_prompt: str
+
+
+class ChapterDraft(BaseModel):
+    """A chapter's title (from planning) + content (from Agent 2) — no
+    image_url yet, since that field is filled in later by the image step."""
+
+    title: str
+    text: str
+    image_prompt: str
 
 
 class Chapter(BaseModel):
@@ -29,14 +55,6 @@ class Chapter(BaseModel):
     image_url: str = ""  # populated by the image generation step, empty until then
 
 
-class StoryDraft(BaseModel):
-    """Output of Agent 2 (Storyteller), before images are attached."""
-
-    topic: str
-    age_group: AgeGroup
-    chapters: list[Chapter]
-
-
 class QuizQuestion(BaseModel):
     question: str
     choices: list[str] = Field(min_length=4, max_length=4)
@@ -44,9 +62,10 @@ class QuizQuestion(BaseModel):
 
 
 class QuizPayload(BaseModel):
-    """Output of Agent 3 (Quiz Master)."""
+    """Output of Agent 3 (Quiz Master) for a single chapter — 2 questions per
+    chapter, 3 chapters, assembled into 6 total by pipeline.py."""
 
-    quiz: list[QuizQuestion] = Field(min_length=3, max_length=3)
+    quiz: list[QuizQuestion] = Field(min_length=2, max_length=2)
 
 
 class StoryPayload(BaseModel):

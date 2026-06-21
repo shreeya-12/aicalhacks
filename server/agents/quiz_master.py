@@ -1,52 +1,49 @@
 """Agent 3: The Quiz Master.
 
-Owned by Member 1. Takes Agent 2's final chapter text (never the raw research)
-and writes a 3-question multiple-choice quiz strictly grounded in that text,
-to keep the quiz consistent with what the user actually read.
+Takes ONE finished chapter (Agent 2's final title + text, never the raw
+research) and writes exactly 2 multiple-choice questions strictly grounded in
+that chapter's text, to keep each chapter's quiz consistent with what the
+user actually read for that chapter. Runs once per chapter; pipeline.py
+concatenates the 3 chapters' questions into 6 total.
 """
-
-import json
 
 from anthropic import AsyncAnthropic
 
+from agents._tool_schemas import input_schema_for
 from config import settings
-from models import QuizPayload, QuizQuestion, StoryDraft
+from models import ChapterDraft, QuizPayload, QuizQuestion
 
 _client = AsyncAnthropic(api_key=settings.anthropic_api_key)
 
-_SYSTEM_PROMPT = """You are a quiz writer. Given story chapters, write exactly 3 \
-multiple-choice questions that test comprehension of facts stated in those \
-chapters. Do not introduce facts that aren't in the text.
+_QUIZ_TOOL = {
+    "name": "submit_quiz",
+    "description": "Submit exactly 2 multiple-choice questions for this chapter.",
+    "input_schema": input_schema_for(QuizQuestion, "quiz", 2),
+}
+
+_SYSTEM_PROMPT = """You are a quiz writer. Given one story chapter, write exactly 2 \
+multiple-choice questions that test comprehension of facts stated in that chapter. \
+Do not introduce facts that aren't in the text.
 
 Each question must have exactly 4 choices and one correct_index (0-3).
 
-Respond with ONLY a JSON object matching this exact shape, no markdown fences, \
-no commentary:
-
-{
-  "quiz": [
-    {"question": "...", "choices": ["...", "...", "...", "..."], "correct_index": 0},
-    {"question": "...", "choices": ["...", "...", "...", "..."], "correct_index": 0},
-    {"question": "...", "choices": ["...", "...", "...", "..."], "correct_index": 0}
-  ]
-}
-"""
+Call the submit_quiz tool exactly once with your final result."""
 
 
-def _build_user_prompt(draft: StoryDraft) -> str:
-    chapters_text = "\n\n".join(f"{c.title}\n{c.text}" for c in draft.chapters)
-    return f"Story chapters:\n\n{chapters_text}"
+def _build_user_prompt(chapter: ChapterDraft) -> str:
+    return f"Chapter: {chapter.title}\n\n{chapter.text}"
 
 
-async def write_quiz(draft: StoryDraft) -> list[QuizQuestion]:
+async def write_quiz_for_chapter(chapter: ChapterDraft) -> list[QuizQuestion]:
     response = await _client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=1000,
+        max_tokens=700,
         system=_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": _build_user_prompt(draft)}],
+        tools=[_QUIZ_TOOL],
+        tool_choice={"type": "tool", "name": "submit_quiz"},
+        messages=[{"role": "user", "content": _build_user_prompt(chapter)}],
     )
 
-    raw_text = response.content[0].text
-    data = json.loads(raw_text)
-    payload = QuizPayload(**data)
+    tool_use_block = next(b for b in response.content if b.type == "tool_use")
+    payload = QuizPayload(**tool_use_block.input)
     return payload.quiz

@@ -1,4 +1,5 @@
 fastapi
+openai
 uvicorn[standard]
 pydantic
 python-dotenv
@@ -6,4 +7,5 @@ anthropic
 redis
 sentry-sdk
 httpx
-# stagehand  # uncomment once Member 3 wires real Browserbase calls
+stagehand-py
+rich

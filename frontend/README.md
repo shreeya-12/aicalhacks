@@ -23,8 +23,3 @@ npm run dev
 - `src/components/StoryPanel.tsx` - paginated chapter view (prev/next, progress dots), advances to the quiz view after the last chapter
 - `src/components/ImageFrame.tsx` - the active chapter's image, with a loading skeleton
 - `src/components/Quiz.tsx` - multiple-choice quiz grouped by chapter, shows an explanation on wrong answers, scores the attempt, supports retry/restart
-
-The backend now matches this UI exactly: `AgeGroup` is `elementary | middle_school | high_school
-| college` on both sides, `GET /api/history` is implemented (Redis-backed, fails open to `[]`),
-and real backend-generated `QuizQuestion`s include `explanation`/`chapter_index` just like the
-demo mock data.

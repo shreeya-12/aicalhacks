@@ -9,6 +9,3 @@ followed by AI-generated images (OpenAI `gpt-image-1`).
 
 - [`server/`](server/) - FastAPI backend, agent pipeline, Redis cache (see [server/README.md](server/README.md))
 - [`frontend/`](frontend/) - React + Vite app: topic form -> story -> quiz, with a history sidebar (see [frontend/README.md](frontend/README.md))
-
-Frontend and backend contracts are in sync: matching `AgeGroup` options on both sides, a working
-`GET /api/history`, and quiz questions that always include `explanation`/`chapter_index`.

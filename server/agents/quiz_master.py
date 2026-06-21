@@ -4,7 +4,8 @@ Takes ONE finished chapter (Agent 2's final title + text, never the raw
 research) and writes exactly 2 multiple-choice questions strictly grounded in
 that chapter's text, to keep each chapter's quiz consistent with what the
 user actually read for that chapter. Runs once per chapter; pipeline.py
-concatenates the 3 chapters' questions into 6 total.
+concatenates every chapter's 2 questions into the final quiz (so total quiz
+length scales with chapter count, which varies by age group).
 """
 
 from anthropic import AsyncAnthropic

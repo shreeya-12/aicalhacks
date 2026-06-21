@@ -16,3 +16,13 @@ IMAGE_PROMPT_STYLE = {
     AgeGroup.HIGH_SCHOOL: "clean educational diagram or realistic illustration, labeled if relevant",
     AgeGroup.COLLEGE: "hyper-realistic, detailed, documentary-style",
 }
+
+# (min, max) chapters chapter_planner.py may produce for each age group —
+# older audiences get more chapters since the topic can go deeper. Claude
+# picks within the range based on how much depth the topic actually warrants.
+CHAPTER_COUNT_RANGE = {
+    AgeGroup.ELEMENTARY: (3, 3),
+    AgeGroup.MIDDLE_SCHOOL: (4, 5),
+    AgeGroup.HIGH_SCHOOL: (6, 8),
+    AgeGroup.COLLEGE: (8, 10),
+}

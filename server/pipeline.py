@@ -5,7 +5,8 @@ chapter + its quiz -> images -> cache.
         -> plan_chapters()        -> list[ChapterOutline]   (title + research_query, x3)
         -> research(outline.research_query)   -> ResearchFacts   (Agent 1, mega-crawler, once per chapter)
         -> write_chapter(...)     -> ChapterContent          (Agent 2, scoped to that chapter's research)
-        -> write_quiz_for_chapter(...) -> list[QuizQuestion]  (Agent 3, 2 questions, grounded only in that chapter's text)
+        -> write_quiz_for_chapter(...) -> list[QuizQuestionContent]  (Agent 3, 2 questions + explanations, grounded only in that chapter's text)
+        -> (chapter_index assigned here, not by Agent 3, producing the final QuizQuestion)
         -> generate_image()       -> attaches image_url, producing the final Chapter
         -> StoryPayload           (chapters x3, quiz x6 — cached in Redis, returned to the frontend)
 
@@ -36,11 +37,14 @@ from models import AgeGroup, Chapter, ChapterDraft, QuizQuestion, ResearchFacts,
 
 
 async def _write_chapter_and_quiz(
-    title: str, facts: ResearchFacts, age_group: AgeGroup
+    chapter_index: int, title: str, facts: ResearchFacts, age_group: AgeGroup
 ) -> tuple[ChapterDraft, list[QuizQuestion]]:
     content = await write_chapter(title, facts, age_group)
     draft = ChapterDraft(title=title, text=content.text, image_prompt=content.image_prompt)
-    quiz = await write_quiz_for_chapter(draft)
+    quiz_contents = await write_quiz_for_chapter(draft)
+    quiz = [
+        QuizQuestion(**question.model_dump(), chapter_index=chapter_index) for question in quiz_contents
+    ]
     return draft, quiz
 
 
@@ -55,8 +59,8 @@ async def run_pipeline(topic: str, age_group: AgeGroup) -> StoryPayload:
 
     results = await asyncio.gather(
         *(
-            _write_chapter_and_quiz(outline.title, facts, age_group)
-            for outline, facts in zip(outlines, facts_list)
+            _write_chapter_and_quiz(i, outline.title, facts, age_group)
+            for i, (outline, facts) in enumerate(zip(outlines, facts_list))
         )
     )
     chapter_drafts = [draft for draft, _ in results]

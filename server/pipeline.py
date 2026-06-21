@@ -1,17 +1,19 @@
-"""Sequential orchestration: Agent 1 -> Agent 2 -> Agent 3 -> images -> cache.
+"""Per-chapter orchestration: plan -> research each chapter -> write each
+chapter + its quiz -> images -> cache.
 
-State flowing through the pipeline is just the Pydantic models in models.py —
-each agent's output is the next agent's input, with no separate state-machine
-object needed:
+    topic, age_group
+        -> plan_chapters()        -> list[ChapterOutline]   (title + research_query, x3)
+        -> research(outline.research_query)   -> ResearchFacts   (Agent 1, mega-crawler, once per chapter)
+        -> write_chapter(...)     -> ChapterContent          (Agent 2, scoped to that chapter's research)
+        -> write_quiz_for_chapter(...) -> list[QuizQuestion]  (Agent 3, 2 questions, grounded only in that chapter's text)
+        -> generate_image()       -> attaches image_url, producing the final Chapter
+        -> StoryPayload           (chapters x3, quiz x6 — cached in Redis, returned to the frontend)
 
-    topic (str)
-        -> research()      -> ResearchFacts   (Agent 1: raw scraped text)
-        -> write_story()    -> StoryDraft      (Agent 2: list[ChapterDraft], no image_url yet)
-        -> write_quiz()     -> list[QuizQuestion]  (Agent 3: grounded only in StoryDraft text)
-        -> generate_image() -> attaches image_url, producing the final Chapter
-        -> StoryPayload     (cached in Redis, returned to the frontend)
-
-Written as plain async functions rather than against a specific framework.
+The 3 chapters' research runs sequentially (a single Browserbase plan may
+only allow one concurrent browser session), but once all research is done,
+the 3 chapters' write_chapter + write_quiz_for_chapter calls run concurrently
+via asyncio.gather — Claude calls have no shared-session concurrency limit,
+so this is free latency savings.
 
 BAND (https://www.band.ai/) is a multi-agent *rooms* coordination platform —
 each agent gets its own agent_id/api_key and agents communicate over a shared
@@ -19,21 +21,27 @@ room via BAND_REST_URL/BAND_WS_URL, rather than a simple function-call
 pipeline. That's a heavier model than what we have here, and we don't have
 Band credentials yet, so this file makes no Band calls. Config fields
 (band_rest_url, band_ws_url, band_api_key, band_agent_id) exist in config.py
-for when real credentials arrive. If/when that happens, the natural
-integration point is to replace the direct `await research(...)` /
-`await write_story(...)` / `await write_quiz(...)` calls below with
-equivalent calls routed through a Band room, without changing
-run_pipeline()'s signature or its StoryPayload return contract.
+for when real credentials arrive.
 """
 
 import asyncio
 
+from agents.chapter_planner import plan_chapters
 from agents.images import generate_image
-from agents.quiz_master import write_quiz
+from agents.quiz_master import write_quiz_for_chapter
 from agents.researcher import research
-from agents.storyteller import write_story
+from agents.storyteller import write_chapter
 from cache import get_cached_story, set_cached_story
-from models import AgeGroup, Chapter, StoryPayload
+from models import AgeGroup, Chapter, ChapterDraft, QuizQuestion, ResearchFacts, StoryPayload
+
+
+async def _write_chapter_and_quiz(
+    title: str, facts: ResearchFacts, age_group: AgeGroup
+) -> tuple[ChapterDraft, list[QuizQuestion]]:
+    content = await write_chapter(title, facts, age_group)
+    draft = ChapterDraft(title=title, text=content.text, image_prompt=content.image_prompt)
+    quiz = await write_quiz_for_chapter(draft)
+    return draft, quiz
 
 
 async def run_pipeline(topic: str, age_group: AgeGroup) -> StoryPayload:
@@ -41,16 +49,25 @@ async def run_pipeline(topic: str, age_group: AgeGroup) -> StoryPayload:
     if cached is not None:
         return cached
 
-    facts = await research(topic)
-    draft = await write_story(facts, age_group)
-    quiz = await write_quiz(draft)
+    outlines = await plan_chapters(topic, age_group)
 
-    image_urls = await asyncio.gather(*(generate_image(c.image_prompt) for c in draft.chapters))
+    facts_list = [await research(outline.research_query) for outline in outlines]
+
+    results = await asyncio.gather(
+        *(
+            _write_chapter_and_quiz(outline.title, facts, age_group)
+            for outline, facts in zip(outlines, facts_list)
+        )
+    )
+    chapter_drafts = [draft for draft, _ in results]
+    quiz_questions = [question for _, questions in results for question in questions]
+
+    image_urls = await asyncio.gather(*(generate_image(c.image_prompt) for c in chapter_drafts))
     chapters = [
         Chapter(title=c.title, text=c.text, image_prompt=c.image_prompt, image_url=url)
-        for c, url in zip(draft.chapters, image_urls)
+        for c, url in zip(chapter_drafts, image_urls)
     ]
 
-    payload = StoryPayload(topic=topic, age_group=age_group, chapters=chapters, quiz=quiz)
+    payload = StoryPayload(topic=topic, age_group=age_group, chapters=chapters, quiz=quiz_questions)
     await set_cached_story(payload)
     return payload

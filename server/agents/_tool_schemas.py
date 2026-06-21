@@ -28,3 +28,11 @@ def input_schema_for(model: type[BaseModel], wrapper_key: str, count: int) -> di
         },
         "required": [wrapper_key],
     }
+
+
+def single_input_schema_for(model: type[BaseModel]) -> dict:
+    """Builds a tool input_schema for submitting exactly one instance of model
+    directly (no array wrapper) — used when a call produces a single object."""
+    schema = model.model_json_schema()
+    schema.pop("title", None)
+    return schema
